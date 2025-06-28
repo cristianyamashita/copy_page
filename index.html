@@ -68,11 +68,81 @@
         .modal {
             z-index: 1050;
         }
+        
+        .edit-mode-off .add-button,
+        .edit-mode-off .delete-button {
+            display: none !important;
+        }
+        
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
     </style>
 </head>
 <body>
     <div class="container mt-4">
-        <h1 class="text-center mb-4">Clipboard Buttons</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Copy page</h1>
+            
+            <!-- Edit Mode Toggle -->
+            <div class="toggle-container">
+                <label class="form-check-label me-3" for="editModeToggle">
+                    Edit Mode
+                </label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="editModeToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
         
         <div id="buttons-container">
             <!-- Buttons will be dynamically added here -->
@@ -154,13 +224,30 @@
         let deleteButtonId = null;
         let addButtonModal;
         let deleteConfirmModal;
+        let editMode = true;
 
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
             addButtonModal = new bootstrap.Modal(document.getElementById('addButtonModal'));
             deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+            
+            // Load edit mode state from localStorage
+            const savedEditMode = localStorage.getItem('editMode');
+            if (savedEditMode !== null) {
+                editMode = JSON.parse(savedEditMode);
+                document.getElementById('editModeToggle').checked = editMode;
+            }
+            
             loadButtons();
             renderButtons();
+            updateEditMode();
+            
+            // Add event listener for edit mode toggle
+            document.getElementById('editModeToggle').addEventListener('change', function() {
+                editMode = this.checked;
+                localStorage.setItem('editMode', JSON.stringify(editMode));
+                updateEditMode();
+            });
             
             // Add event listeners for radio buttons
             document.querySelectorAll('input[name="addLocation"]').forEach(radio => {
@@ -175,6 +262,16 @@
                 });
             });
         });
+
+        // Update edit mode visibility
+        function updateEditMode() {
+            const body = document.body;
+            if (editMode) {
+                body.classList.remove('edit-mode-off');
+            } else {
+                body.classList.add('edit-mode-off');
+            }
+        }
 
         // Load buttons from localStorage
         function loadButtons() {
