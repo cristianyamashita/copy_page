@@ -81,6 +81,16 @@
             margin-bottom: 20px;
         }
         
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .filter-input {
+            min-width: 200px;
+        }
+        
         .toggle-switch {
             position: relative;
             display: inline-block;
@@ -132,15 +142,26 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>Copy page</h1>
             
-            <!-- Edit Mode Toggle -->
-            <div class="toggle-container">
-                <label class="form-check-label me-3" for="editModeToggle">
-                    Edit Mode
-                </label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="editModeToggle" checked>
-                    <span class="slider"></span>
-                </label>
+            <!-- Header Controls -->
+            <div class="header-controls">
+                <!-- Filter Input -->
+                <div class="input-group filter-input">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="filterInput" placeholder="Filter buttons..." aria-label="Filter buttons">
+                </div>
+                
+                <!-- Edit Mode Toggle -->
+                <div class="toggle-container">
+                    <label class="form-check-label me-3" for="editModeToggle">
+                        Edit
+                    </label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="editModeToggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
             </div>
         </div>
         
@@ -249,6 +270,11 @@
                 updateEditMode();
             });
             
+            // Add event listener for filter input
+            document.getElementById('filterInput').addEventListener('input', function() {
+                filterButtons(this.value);
+            });
+            
             // Add event listeners for radio buttons
             document.querySelectorAll('input[name="addLocation"]').forEach(radio => {
                 radio.addEventListener('change', function() {
@@ -271,6 +297,32 @@
             } else {
                 body.classList.add('edit-mode-off');
             }
+        }
+
+        // Filter buttons based on text
+        function filterButtons(filterText) {
+            const filterLower = filterText.toLowerCase().trim();
+            const rows = document.querySelectorAll('.button-container');
+            
+            rows.forEach(row => {
+                const buttons = row.querySelectorAll('.copy-button');
+                let rowHasMatch = false;
+                
+                // Check if any button in this row matches the filter
+                buttons.forEach(button => {
+                    const buttonText = button.textContent.toLowerCase();
+                    if (buttonText.includes(filterLower)) {
+                        rowHasMatch = true;
+                    }
+                });
+                
+                // Show/hide the row based on match
+                if (filterLower === '' || rowHasMatch) {
+                    row.style.display = 'flex';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
         }
 
         // Load buttons from localStorage
