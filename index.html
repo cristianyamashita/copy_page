@@ -401,11 +401,24 @@
             const select = document.getElementById('rowSelect');
             select.innerHTML = '';
             
-            const rows = [...new Set(buttons.map(button => button.rowId))];
-            rows.forEach(rowId => {
+            // Group buttons by row
+            const rows = {};
+            buttons.forEach(button => {
+                if (!rows[button.rowId]) {
+                    rows[button.rowId] = [];
+                }
+                rows[button.rowId].push(button);
+            });
+            
+            // Create options for each row
+            Object.keys(rows).forEach(rowId => {
                 const option = document.createElement('option');
                 option.value = rowId;
-                option.textContent = `Row ${rowId}`;
+                
+                // Get the text of the first button in the row
+                const firstButtonText = rows[rowId][0].text;
+                option.textContent = `${firstButtonText} (Row ${rowId})`;
+                
                 select.appendChild(option);
             });
         }
