@@ -75,8 +75,13 @@
         }
         
         .edit-mode-off #importExportContainer,
-        .edit-mode-off #workspaceContainer {
+        .edit-mode-off #workspaceContainer,
+        .edit-mode-off #dragModeContainer {
             display: none !important;
+        }
+        
+        .drag-mode-on .copy-button {
+            cursor: grab;
         }
         
         .toggle-container {
@@ -168,6 +173,17 @@
                 <div id="importExportContainer" class="d-flex align-items-center me-3">
                     <button id="exportButton" class="btn btn-outline-secondary me-2">Export</button>
                     <button id="importButton" class="btn btn-outline-secondary">Import</button>
+                </div>
+
+                <!-- Drag Mode Toggle -->
+                <div id="dragModeContainer" class="toggle-container me-3">
+                    <label class="form-check-label me-3" for="dragModeToggle">
+                        Drag
+                    </label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="dragModeToggle">
+                        <span class="slider"></span>
+                    </label>
                 </div>
 
                 <!-- Edit Mode Toggle -->
@@ -288,6 +304,7 @@
         let deleteConfirmModal;
         let importModal;
         let editMode = true;
+        let dragMode = false;
         let workspaces = [];
         let currentWorkspaceId = 'default';
         let buttons = [];
@@ -301,10 +318,12 @@
 
             loadWorkspaces();
             initializeCurrentWorkspace();
+            updateTitle();
+            loadState();
             loadButtons();
             renderButtons();
             renderWorkspaceControls();
-            updateEditMode();
+            updateModes();
             setupEventListeners();
         });
 
@@ -313,7 +332,14 @@
             document.getElementById('editModeToggle').addEventListener('change', function() {
                 editMode = this.checked;
                 localStorage.setItem('editMode', JSON.stringify(editMode));
-                updateEditMode();
+                updateModes();
+            });
+
+            // Drag mode toggle
+            document.getElementById('dragModeToggle').addEventListener('change', function() {
+                dragMode = this.checked;
+                localStorage.setItem('dragMode', JSON.stringify(dragMode));
+                updateModes();
             });
             
             // Filter input
@@ -344,6 +370,22 @@
             document.getElementById('addWorkspaceButton').addEventListener('click', addWorkspace);
             document.getElementById('deleteWorkspaceButton').addEventListener('click', deleteWorkspace);
             window.addEventListener('hashchange', onHashChange, false);
+        }
+
+        function loadState() {
+            // Load edit mode state from localStorage
+            const savedEditMode = localStorage.getItem('editMode');
+            if (savedEditMode !== null) {
+                editMode = JSON.parse(savedEditMode);
+            }
+            document.getElementById('editModeToggle').checked = editMode;
+
+            // Load drag mode state
+            const savedDragMode = localStorage.getItem('dragMode');
+            if (savedDragMode !== null) {
+                dragMode = JSON.parse(savedDragMode);
+            }
+            document.getElementById('dragModeToggle').checked = dragMode;
         }
 
         function loadWorkspaces() {
@@ -399,6 +441,7 @@
                 loadButtons();
                 renderButtons();
                 renderWorkspaceControls();
+                updateTitle();
             }
         }
 
@@ -439,14 +482,22 @@
             }
         }
 
-        // Update edit mode visibility
-        function updateEditMode() {
+        // Update mode-dependent UI elements
+        function updateModes() {
             const body = document.body;
             if (editMode) {
                 body.classList.remove('edit-mode-off');
             } else {
                 body.classList.add('edit-mode-off');
             }
+
+            if (dragMode) {
+                body.classList.add('drag-mode-on');
+            } else {
+                body.classList.remove('drag-mode-on');
+            }
+
+            renderButtons(); // Re-render buttons to apply/remove drag handlers
         }
 
         // Filter buttons based on text
@@ -533,7 +584,15 @@
             const copyBtn = document.createElement('button');
             copyBtn.className = 'btn btn-outline-primary copy-button';
             copyBtn.textContent = button.text;
-            copyBtn.onclick = () => copyToClipboard(button.text, copyBtn);
+
+            if (dragMode) {
+                copyBtn.draggable = true;
+                copyBtn.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', button.text);
+                });
+            } else {
+                copyBtn.onclick = () => copyToClipboard(button.text, copyBtn);
+            }
 
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-button';
@@ -736,6 +795,16 @@
                 alert('Buttons imported successfully!');
             } catch (error) {
                 alert('Failed to import buttons. Please check the JSON data and try again.\nError: ' + error.message);
+            }
+        }
+
+        function updateTitle() {
+            const workspace = workspaces.find(ws => ws.id === currentWorkspaceId);
+            const baseTitle = 'Copy Page';
+            if (workspace) {
+                document.title = `${workspace.name} - ${baseTitle}`;
+            } else {
+                document.title = baseTitle;
             }
         }
     </script>
