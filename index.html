@@ -74,6 +74,10 @@
             display: none !important;
         }
         
+        .edit-mode-off #importExportContainer {
+            display: none !important;
+        }
+        
         .toggle-container {
             display: flex;
             align-items: center;
@@ -152,6 +156,12 @@
                     <input type="text" class="form-control" id="filterInput" placeholder="Filter buttons..." aria-label="Filter buttons">
                 </div>
                 
+                <!-- Export/Import Buttons -->
+                <div id="importExportContainer" class="d-flex align-items-center me-3">
+                    <button id="exportButton" class="btn btn-outline-secondary me-2">Export</button>
+                    <button id="importButton" class="btn btn-outline-secondary">Import</button>
+                </div>
+
                 <!-- Edit Mode Toggle -->
                 <div class="toggle-container">
                     <label class="form-check-label me-3" for="editModeToggle">
@@ -174,6 +184,30 @@
             <button class="add-button" onclick="showAddModal()" title="Add new button">
                 <i class="fas fa-plus"></i>
             </button>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importModalLabel">Import Buttons</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Paste your JSON data below or upload a file. This will replace your current buttons.</p>
+                    <textarea class="form-control" id="importData" rows="10" placeholder='[{"id":"...","text":"...","rowId":"..."}, ...]'></textarea>
+                    <div class="mt-3">
+                        <label for="importFile" class="form-label">Or upload a file:</label>
+                        <input class="form-control" type="file" id="importFile" accept=".json">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="importButtons()">Import Now</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -245,12 +279,14 @@
         let deleteButtonId = null;
         let addButtonModal;
         let deleteConfirmModal;
+        let importModal;
         let editMode = true;
 
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
             addButtonModal = new bootstrap.Modal(document.getElementById('addButtonModal'));
             deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+            importModal = new bootstrap.Modal(document.getElementById('importModal'));
             
             // Load edit mode state from localStorage
             const savedEditMode = localStorage.getItem('editMode');
@@ -274,6 +310,11 @@
             document.getElementById('filterInput').addEventListener('input', function() {
                 filterButtons(this.value);
             });
+
+            // Add event listeners for import/export
+            document.getElementById('exportButton').addEventListener('click', exportButtons);
+            document.getElementById('importButton').addEventListener('click', () => importModal.show());
+            document.getElementById('importFile').addEventListener('change', handleFileSelect, false);
             
             // Add event listeners for radio buttons
             document.querySelectorAll('input[name="addLocation"]').forEach(radio => {
@@ -523,6 +564,66 @@
                 deleteButtonId = null;
             }
             deleteConfirmModal.hide();
+        }
+
+        // Export buttons to a JSON file
+        function exportButtons() {
+            const dataStr = JSON.stringify(buttons, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'clipboard-buttons.json';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // Handle file selection for import
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const contents = e.target.result;
+                document.getElementById('importData').value = contents;
+            };
+            reader.readAsText(file);
+        }
+
+        // Import buttons from JSON
+        function importButtons() {
+            const jsonText = document.getElementById('importData').value;
+            if (!jsonText.trim()) {
+                alert('No data to import.');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to replace all current buttons with the imported ones?')) {
+                return;
+            }
+
+            try {
+                const importedButtons = JSON.parse(jsonText);
+                
+                // Basic validation
+                if (!Array.isArray(importedButtons) || !importedButtons.every(b => b.id && b.text && b.rowId)) {
+                    throw new Error('Invalid JSON structure. Expected an array of objects with id, text, and rowId.');
+                }
+
+                buttons = importedButtons;
+                saveButtons();
+                renderButtons();
+                importModal.hide();
+                document.getElementById('importData').value = '';
+                document.getElementById('importFile').value = ''; // Reset file input
+                alert('Buttons imported successfully!');
+            } catch (error) {
+                alert('Failed to import buttons. Please check the JSON data and try again.\nError: ' + error.message);
+            }
         }
     </script>
 </body>
